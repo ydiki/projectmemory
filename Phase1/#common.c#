@@ -1,0 +1,36 @@
+#include "common_impl.h"
+
+int creer_socket(int prop, int *port_num) 
+{
+  int fd = 0;
+   
+  /* fonction de creation et d'attachement */
+  /* d'une nouvelle socket */
+  /* renvoie le numero de descripteur */
+  /* et modifie le parametre port_num */
+
+  int fd = -1;
+  int yes = 1;
+
+  // creation de la socket
+  fd = socket(AF_INET, type, 0);
+
+  // verification de la validite de la socket
+  if (fd == -1)
+    ERROR_EXIT("Socket error");
+
+  // socket option pour le probleme "already in use"
+  if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1)
+    ERROR_EXIT("Error setting socket options");
+
+  return fd;
+   
+  return fd;
+}
+
+/* Vous pouvez ecrire ici toutes les fonctions */
+/* qui pourraient etre utilisees par le lanceur */
+/* et le processus intermediaire. N'oubliez pas */
+/* de declarer le prototype de ces nouvelles */
+/* fonctions dans common_impl.h */
+
