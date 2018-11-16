@@ -7,6 +7,11 @@
 #include <errno.h>
 #include <string.h>
 #include <fcntl.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include<netdb.h>
+
 
 /* autres includes (eventuellement) */
 
@@ -15,15 +20,16 @@
 /* definition du type des infos */
 /* de connexion des processus dsm */
 struct dsm_proc_conn  {
-   int rank;
-   int port;
-   char *name;
-   /* a completer */
+  char name[taille_nom];
+  int socket;
+  int rank;
+  u_short port;
+  pid_t pid;
+  struct sockaddr_in ad_client;
 };
 
 struct nom_machines{
   char nom[taille_nom];
-  int sock;
   struct nom_machines *next;
 };
 // Liste chainée des noms de machines
@@ -39,3 +45,10 @@ struct dsm_proc {
 typedef struct dsm_proc dsm_proc_t;
 
 int creer_socket(int *port);
+int receive_length(int socket, char * buffer);
+int indice_b (char buffer[]);
+int do_connect(int socket, struct sockaddr_in *serv_add);
+int do_accept(int s, struct sockaddr* adresse);
+void do_listen(int socket, int maxconn);
+void handle_message(int s, const void *input, int length);
+int get_ip_from_hostname(char * hostname , char* ip);

@@ -7,11 +7,11 @@ OPTFLAGS     = -O0
 
 SHELL = /bin/sh
 
-CFLAGS  =   -DREENTRANT -Wunused -Wall -g -std=c99
+CFLAGS  =   -DREENTRANT -Wunused -Wall -g 
 CCFLAGS = $(CFLAGS)
 LIBS =  -lpthread
 
-EXECS = common.o dsmexec dsmwrap truc 
+EXECS = common.o dsmexec dsmwrap truc test
 
 default: $(EXECS)
 
@@ -26,6 +26,10 @@ dsmwrap: dsmwrap.o common.o
 truc: truc.o 
 	$(CLINKER) $(OPTFLAGS) -o truc truc.o common.o $(LIBS)	
 	mv truc ./bin
+	
+test: test.o 
+	$(CLINKER) $(OPTFLAGS) -o test test.o common.o $(LIBS)	
+	mv test ./bin
 	
 clean:
 	@-/bin/rm -f *.o *~ PI* $(EXECS) *.out core 
