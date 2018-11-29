@@ -3,6 +3,37 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
+/*
+void affichages_dans_les_tubes(int fd1[],int fd2[],int *num_procs){
+	int rfds=1; //taille courante du pollfds
+	int p,i;
+	struct pollfd pollfds[2][100];
+	for(i=0,i<num_procs,i++){
+	pollfds[0][i].fd=fd1[i][1];
+	pollfds[0][i].events=POLLIN;
+	pollfds[1][i].fd=fd2[i][1]
+	pollfds[1][i].events=POLLIN;
+}
+
+	     while(1)
+{
+poll(pollfds,rfds,-1);
+/*je recupere les infos sur les tubes de redirection
+jusqu'à ce qu'ils soient inactifs (ie fermes par les
+processus dsm ecrivains de l'autre cote ...)*/
+//if(users->pollfds.revents==POLLIN)
+
+//};
+
+
+
+
+
+
+//}
+
+
+
 int receive_length(int socket, char *buffer)
 {
 	int k = 0;
@@ -78,15 +109,19 @@ int do_accept(int s, struct sockaddr* adresse) {
 
 	int fda=-1;
 
-		printf("j\n");
+	do{
 		fda = accept(s, adresse, &length__client);
-
-		if (fda < 0) {
-			error("Accept ERROR ");
+		if (fda < 0 ) {
+				perror("Voici l'erreur concernant l'acceptation : ");
 		}
-		printf("jj%d\n",fda);
 
+	/*	if (fda == -1 && errno == EINTR) {
+				// EINTR The accept() function was interrupted by a signal
+				//         that was caught before a valid connection arrived.
 
+		}*/
+
+	} while (fda < 0);
 
 	return fda;
 }
@@ -97,7 +132,7 @@ int do_connect(int socket, struct sockaddr_in* server_add) {
 		printf("Connexion ERROR ");
 	}
 	else{
-		printf("connexion done :) ");
+		printf("connexion done :) \n");
 	}
 	return con;
 }

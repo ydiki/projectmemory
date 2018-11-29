@@ -2,14 +2,15 @@
 
 int main(int argc, char **argv)
 {
-  //sleep(100);
+
   /*declarations des variables*/
   dsm_proc_t *proc_array = NULL;// Tableau (des strucs) contenant les infos des processus dsmwrap
 
   int socket_lanceur,socket_listen_procs; // les sockets
-  u_short port_lanceur, port_listen_procs; // les ports
+  u_short port_lanceur;
+  u_short port_listen_procs; // les ports
   u_short my_rank = atoi(argv[3]);     // Rank du processus
-  int num_procs;     // nombre des processus estimé du ficher machine file
+  int num_procs,i;     // nombre des processus estimé du ficher machine file
   char name[taille_nom];
 
   struct sockaddr_in *lanceur_addr; //struct adresse du dsmexec
@@ -31,8 +32,7 @@ int main(int argc, char **argv)
    gethostname(name, sizeof(char) * taille_nom);
 
    //On recupere le pid du processus
-   pid_t pid;
-   pid=getpid();
+   pid_t pid=getpid();
 
    /* creation d'une socket pour se connecter au */
    /* au lanceur et envoyer/recevoir les infos */
@@ -45,28 +45,46 @@ int main(int argc, char **argv)
    lanceur_addr->sin_addr.s_addr = inet_addr(ip_lanceur); //convert to binary numbers
 
    do_connect(socket_lanceur,lanceur_addr);
-
    /* Envoi du nom de machine au lanceur */
    handle_message(socket_lanceur,&name,taille_nom);
-
    /* Envoi du pid au lanceur */
-   handle_message(socket_lanceur,&pid,sizeof(pid_t));
 
+    handle_message(socket_lanceur,pid,sizeof(pid_t));
 
    /* Creation de la socket d'ecoute pour les */
    /* connexions avec les autres processus dsm */
    socket_listen_procs=creer_socket(&port_listen_procs);
 
-
    /* Envoi du numero de port au lanceur */
    /* pour qu'il le propage à tous les autres */
    /* processus dsm */
-   handle_message(socket_lanceur,&port_listen_procs,sizeof(port_listen_procs));
+   handle_message(socket_lanceur,port_listen_procs,sizeof(port_listen_procs));
 
-
+  /*Récupération des infos de connexion aux autres processus*/
+  /*nombre de processus */
+    read_line(socket_lanceur,&num_procs,sizeof(int));
+/*   proc_array = malloc(num_procs * sizeof(dsm_proc_t));
+  //autres infromations
+  for(i = 0; i < num_procs ; i++){
+  //le rang
+  read_line(socket_lanceur,&proc_array[i].connect_info.rank,sizeof(int));
+//le port
+  read_line(socket_lanceur,&proc_array[i].connect_info.port,sizeof(int));
+//le pid
+  read_line(socket_lanceur,&proc_array[i].pid,sizeof(pid_t));
+//l'adresse client i'
+  proc_array[i].connect_info.ad_client=malloc(sizeof(struct sockaddr));
+  read_line(socket_lanceur,&proc_array[i].connect_info.ad_client,sizeof(struct sockaddr));
+}*/
 
    /* on execute la bonne commande */
+   //char new_arv[argc+1];
+  // for(i=0,i<argc,i++){
+  //   new_arv[i]=argv[i+1];
+//   }
+//   new_arv[argc+1]=NULL;
 
+   //execvp("truc", new_arv);
 
    return 0;
 }

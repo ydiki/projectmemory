@@ -24,8 +24,7 @@ struct dsm_proc_conn  {
   int socket;
   int rank;
   u_short port;
-  pid_t pid;
-  struct sockaddr_in ad_client;
+  struct sockaddr* ad_client;
 };
 
 struct nom_machines{

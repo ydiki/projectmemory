@@ -114,15 +114,15 @@ int main(int argc, char *argv[])
   } else {
     printf("start\n");
     /*declaration des variables*/
-    typedef int fdpipe[2];
+    //typedef int fdpipe[2];
     pid_t pid;
     int num_procs = 0;
     int i,j;
     int port;
-    fdpipe *fd1;
-		fdpipe *fd2;
-    fd1 = malloc(num_procs * sizeof(fdpipe));
-    fd2 = malloc(num_procs * sizeof(fdpipe));
+    int fd1[num_procs][2];
+		int fd2[num_procs][2];
+    //fd1 = malloc(num_procs * sizeof(fdpipe));
+    //fd2 = malloc(num_procs * sizeof(fdpipe));
     const char * machine_file = argv[1];
     char **new_argv;
     new_argv = malloc((argc+6) * sizeof(char *));
@@ -132,14 +132,12 @@ int main(int argc, char *argv[])
     proc_array = malloc(num_procs * sizeof(dsm_proc_t));
     int length;
 
-
-
     /* Mise en place d'un traitant pour recuperer les fils zombies*/
     struct sigaction zombie;
     memset(&zombie, 0, sizeof(struct sigaction ));
     zombie.sa_handler = sigchld_handler;
     //zombie.sa_flags = SA_RESTART;
-    sigaction(SIGCHLD, &zombie, NULL);
+    //sigaction(SIGCHLD, &zombie, NULL);
     printf("sig zombie\n");
     /* lecture du fichier de machines */
     /* 1- on recupere le nombre de processus a lancer */
@@ -159,7 +157,7 @@ int main(int argc, char *argv[])
     printf("socket created\n");
 
     /* + ecoute effective */
-    listen(sock, num_procs);
+    listen(sock,num_procs);
 
     // Nom de la machine serveur
     //char * hostname = malloc(sizeof(char) * taille_nom);
@@ -185,38 +183,34 @@ int main(int argc, char *argv[])
 
         /* redirection stdout */
           close(fd1[i][0]);
-          close(STDOUT_FILENO);
-          dup(fd1[i][1]);
-          close(fd1[i][1]);
+        //  close(STDOUT_FILENO);
+          dup2(STDOUT_FILENO,fd1[i][1]);
+        //  close(fd1[i][1]);
           //printf("cree tube out\n");
 
         /* redirection stderr */
           close(fd2[i][0]);
-          close(STDERR_FILENO);
-          dup(fd2[i][1]);
-          close(fd2[i][1]);
-
-        //  write(STDOUT_FILENO,"hellllo",strlen("hellllo"));
-          proc_array[i].connect_info.pid=getpid();
+        //  close(STDERR_FILENO);
+          dup2(STDERR_FILENO,fd2[i][1]);
+          //close(fd2[i][1]);
 
         /* Creation du tableau d'arguments pour le ssh */
           trouver_machine(tabmachine,i,cette_machine);
-          *(new_argv)="ssh";
+          new_argv[0]="ssh";
           char p[10];
           sprintf(p,"%d",port);
-          *(new_argv+sizeof(char *))=cette_machine;//nom du machine
-          *(new_argv+2*sizeof(char *))="/net/t/ydiki/Desktop/Memoirepartagée/Phase1/bin/dsmwrap";//chemin
-          *(new_argv+3*sizeof(char *))= hostname; // Hostname du serveur (fichier courant)
-          *(new_argv+4*sizeof(char *))=p;// Port du serveur
+          new_argv[1]=cette_machine;//nom du machine
+          new_argv[2]="/net/t/ydiki/Desktop/Memoirepartagée/Phase1/bin/dsmwrap"; //chemin
+          new_argv[3]= hostname; // Hostname du serveur (fichier courant)
+          new_argv[4]=p;// Port du serveur
           for(j = 1; j < argc; j++){
-            *(new_argv+(4+j)*sizeof(char *))=argv[j];
+            new_argv[4+j]=argv[j];
           }
-
-          *(new_argv+(argc+5)*sizeof(char *))=NULL;
-    /*      int k;
+          new_argv[argc+5]=NULL;
+        /* int k;
           for(k=0; k<argc+5; k++){
-            if(*(new_argv+k*sizeof(char *)) != NULL)
-              printf("%s\n",*(new_argv+k*sizeof(char *)));
+            if(new_argv[k] != NULL)
+              printf("%s\n",new_argv[k]);
             else
               printf("NULL\n");
           }*/
@@ -230,89 +224,58 @@ int main(int argc, char *argv[])
         close(fd1[i][1]);
         close(fd2[i][1]);
         num_procs_creat++;
+
       }
     }
 
-
     for(i = 0; i < num_procs ; i++){
-
-
       /* on accepte les connexions des processus dsm */
-    //  proc_array[i].connect_info.ad_client=malloc(sizeof(struct sockaddr_in));
-      printf("%d",sock);
-
-      //proc_array[i].connect_info.socket= do_accept(sock, (struct sockaddr *)&(proc_array[i].connect_info.ad_client));
-      socklen_t sizze = sizeof(struct sockaddr_in);
-      proc_array[i].connect_info.socket= accept(sock, (struct sockaddr *)&(proc_array[i].connect_info.ad_client),&sizze);
-
-      if (proc_array[i].connect_info.socket==-1)perror("");
+      proc_array[i].connect_info.ad_client=malloc(sizeof(struct sockaddr));
+      proc_array[i].connect_info.socket=do_accept(sock,proc_array[i].connect_info.ad_client);
+      if (proc_array[i].connect_info.socket==-1)
+        perror("");
       /*  On recupere le nom de la machine distante */
       /* 1- d'abord la taille de la chaine */
-
-    //  length=read_line(proc_array[i].connect_info.ad_client,buffer,sizeof(buffer));
-      //  printf("receve length %d \n",proc_array[i].connect_info.length);
-      //int j = indice_b(buffer);
       /* 2- puis la chaine elle-meme */
-        //strncpy(proc_array[i].connect_info.name,buffer,j);
-      //read_line(proc_array[i].connect_info.ad_client,proc_array[i].connect_info.name,length);
-
+      read_line(proc_array[i].connect_info.socket,buffer,sizeof(buffer));
+      int length=strlen(buffer);
+      strcpy(proc_array[i].connect_info.name,buffer);
       /* On recupere le pid du processus distant  */
-    //  int j2=indice_b(buffer[j+1]);
-        //recv(client_socket[i],buffer,sizeof(buffer),0);
-      //read_line(proc_array[i].connect_info.ad_client,proc_array[i].pid,10);
-      //  strncpy(proc_array[i].pid,buffer[j+1],j2-j-1);
+      read_line(proc_array[i].connect_info.socket,&proc_array[i].pid,sizeof(proc_array[i].pid));
       /* On recupere le numero de port de la socket */
       /* d'ecoute des processus distants */
-        //recv(client_socket[i],buffer,sizeof(buffer),0);
-    //  read_line(proc_array[i].connect_info.ad_client,proc_array[i].connect_info.port,10);
-
-      //  int j3=indice_b(buffer[j2+1]);
-      //  strncpy(proc_array[i].connect_info.port,buffer[j2+1],j3-j2-1);
+      read_line(proc_array[i].connect_info.socket,&proc_array[i].connect_info.port,sizeof(u_short));
       /* On recupere le rang */
       proc_array[i].connect_info.rank = i;
-      printf("---> i %d \n",proc_array[i].connect_info.rank);
     }
 
+
+
     for(i = 0; i < num_procs ; i++){
-    //  char message[size];
-    //  char nb[5];
-    /* envoi du nombre de processus aux processus dsm*/
-    //  sprintf(nb,"%d",num_procs-1);
-    //  strcpy(message,nb);
-    //  strcat(message,'\n');
-
-
+      /* envoi du nombre de processus aux processus dsm*/
+      handle_message(proc_array[i].connect_info.socket,num_procs,sizeof(int));
     /* envoi des rangs aux processus dsm */
-  //  sprintf(nb,"%d",proc_array[i].connect_info.rank);
-  //  strcat(message,nb);
-    //strcat(message,'\n');
-  //  int j;
+  //  handle_message(proc_array[i].connect_info.socket,proc_array[i].connect_info.rank,sizeof(int));
+
     /* envoi des infos de connexion aux processus */
-    //for(j = 0; j < num_procs ; j++){
-  //    if (j != i){
-      //  sprintf(nb,"%d",proc_array[j].connect_info.port);
-      //  strcat(message,nb);
-        //strcat(message,'\n');
-        //sprintf(nb,"%d",proc_array[j].connect_info.rank);
-      //  strcat(message,nb);
-      //  strcat(message,'\n');
-      //  sprintf(nb,"%d",proc_array[j].pid);
-      //  strcat(message,nb);
-      //  strcat(message,'\n');
-    //  }
-    //}
+  //  handle_message(proc_array[i].connect_info.socket,proc_array[i].connect_info.port,sizeof(int));
+  //  handle_message(proc_array[i].connect_info.socket,proc_array[i].pid,sizeof(pid_t));
+    //handle_message(proc_array[i].connect_info.socket,proc_array[i].connect_info.ad_client,sizeof(struct sockaddr));
+
+
 }
     /* gestion des E/S : on recupere les caracteres */
     /* sur les tubes de redirection de stdout/stderr */
 
-        /*   while(1)
-    {
-
-    je recupere les infos sur les tubes de redirection
+      //     while(1)
+    //{
+    /*je recupere les infos sur les tubes de redirection
     jusqu'à ce qu'ils soient inactifs (ie fermes par les
-    processus dsm ecrivains de l'autre cote ...)
-  };
-  */
+    processus dsm ecrivains de l'autre cote ...)*/
+    //if(users->pollfds.revents==POLLIN)
+
+  //};
+
 
   /* on attend les processus fils */
 
