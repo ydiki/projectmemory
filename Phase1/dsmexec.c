@@ -1,5 +1,6 @@
 #include "common_impl.h"
 #include <signal.h>
+#include <poll.h>
 
 /* variables globales */
 
@@ -128,7 +129,7 @@ int main(int argc, char *argv[])
     new_argv = malloc((argc+6) * sizeof(char *));
     char cette_machine[taille_nom];
     int size=100;
-    char buffer[size];
+    char buffer[20];
     proc_array = malloc(num_procs * sizeof(dsm_proc_t));
     int length;
 
@@ -183,18 +184,18 @@ int main(int argc, char *argv[])
 
         /* redirection stdout */
           close(fd1[i][0]);
-        //  close(STDOUT_FILENO);
+        close(STDOUT_FILENO);
           dup2(STDOUT_FILENO,fd1[i][1]);
         //  close(fd1[i][1]);
           //printf("cree tube out\n");
 
         /* redirection stderr */
           close(fd2[i][0]);
-        //  close(STDERR_FILENO);
+          close(STDERR_FILENO);
           dup2(STDERR_FILENO,fd2[i][1]);
           //close(fd2[i][1]);
 
-        /* Creation du tableau d'arguments pour le ssh */
+        /* Creation du tableau dSuccess'arguments pour le ssh */
           trouver_machine(tabmachine,i,cette_machine);
           new_argv[0]="ssh";
           char p[10];
@@ -202,14 +203,16 @@ int main(int argc, char *argv[])
           new_argv[1]=cette_machine;//nom du machine
           new_argv[2]="/net/t/ydiki/Desktop/Memoirepartagée/Phase1/bin/dsmwrap"; //chemin
           new_argv[3]= hostname; // Hostname du serveur (fichier courant)
-          new_argv[4]=p;// Port du serveur
+          new_argv[4]=p;// Port du serveur   printf("num proc %d \n",num_procs);
+
           for(j = 1; j < argc; j++){
             new_argv[4+j]=argv[j];
           }
           new_argv[argc+5]=NULL;
         /* int k;
           for(k=0; k<argc+5; k++){
-            if(new_argv[k] != NULL)
+            if(new_argv[k] != NULL)        //  close(STDOUT_FILENO);
+
               printf("%s\n",new_argv[k]);
             else
               printf("NULL\n");
@@ -237,14 +240,19 @@ int main(int argc, char *argv[])
       /*  On recupere le nom de la machine distante */
       /* 1- d'abord la taille de la chaine */
       /* 2- puis la chaine elle-meme */
-      read_line(proc_array[i].connect_info.socket,buffer,sizeof(buffer));
+      read(proc_array[i].connect_info.socket,buffer,sizeof(buffer));
       int length=strlen(buffer);
       strcpy(proc_array[i].connect_info.name,buffer);
+      printf("-----------name  %s\n",proc_array[i].connect_info.name);
       /* On recupere le pid du processus distant  */
-      read_line(proc_array[i].connect_info.socket,&proc_array[i].pid,sizeof(proc_array[i].pid));
+      read(proc_array[i].connect_info.socket,&proc_array[i].pid,sizeof(proc_array[i].pid));
+      perror("");
+      printf("-------- pid %d\n ",proc_array[i].pid);
       /* On recupere le numero de port de la socket */
       /* d'ecoute des processus distants */
-      read_line(proc_array[i].connect_info.socket,&proc_array[i].connect_info.port,sizeof(u_short));
+      read(proc_array[i].connect_info.socket,&proc_array[i].connect_info.port,sizeof(proc_array[i].connect_info.port));
+      perror("");
+        printf("--------port %d\n ",proc_array[i].connect_info.port);
       /* On recupere le rang */
       proc_array[i].connect_info.rank = i;
     }
@@ -253,29 +261,52 @@ int main(int argc, char *argv[])
 
     for(i = 0; i < num_procs ; i++){
       /* envoi du nombre de processus aux processus dsm*/
-      handle_message(proc_array[i].connect_info.socket,num_procs,sizeof(int));
+     write(proc_array[i].connect_info.socket,&num_procs,sizeof(num_procs));
     /* envoi des rangs aux processus dsm */
-  //  handle_message(proc_array[i].connect_info.socket,proc_array[i].connect_info.rank,sizeof(int));
+      write(proc_array[i].connect_info.socket,&proc_array[i].connect_info.rank,sizeof(int));
 
     /* envoi des infos de connexion aux processus */
-  //  handle_message(proc_array[i].connect_info.socket,proc_array[i].connect_info.port,sizeof(int));
-  //  handle_message(proc_array[i].connect_info.socket,proc_array[i].pid,sizeof(pid_t));
-    //handle_message(proc_array[i].connect_info.socket,proc_array[i].connect_info.ad_client,sizeof(struct sockaddr));
-
-
+        write(proc_array[i].connect_info.socket,proc_array[i].connect_info.port,sizeof(int));
+        write(proc_array[i].connect_info.socket,proc_array[i].pid,sizeof(pid_t));
+        write(proc_array[i].connect_info.socket,proc_array[i].connect_info.ad_client,sizeof(struct sockaddr));
 }
     /* gestion des E/S : on recupere les caracteres */
     /* sur les tubes de redirection de stdout/stderr */
 
-      //     while(1)
-    //{
-    /*je recupere les infos sur les tubes de redirection
-    jusqu'à ce qu'ils soient inactifs (ie fermes par les
-    processus dsm ecrivains de l'autre cote ...)*/
-    //if(users->pollfds.revents==POLLIN)
+    int p;
+    int t_n=num_procs*2;
+    //char *buffer = malloc(sizeof(char) * 1000);
+    struct pollfd pollfds[(num_procs)*2];
 
-  //};
+    for(i=0;i<num_procs;i++){
+      //stdout
+      pollfds[2*i].fd=fd1[i][1];
+      pollfds[2*i].events=POLLIN;
+      //stderr
+      pollfds[2*i+1].fd=fd2[i][1];
+      pollfds[2*i+1].events=POLLIN;
+    }
+         while(num_procs>0){
 
+            poll(pollfds,t_n,-1);
+            if ( errno != EINTR )
+              error("Erreur lors du poll ");
+
+            for (i = 0; i < num_procs ; i++) {
+            /*je recupere les infos sur les tubes de redirection
+            jusqu'à ce qu'ils soient inactifs (ie fermes par les
+            processus dsm ecrivains de l'autre cote ...)*/
+
+            if (pollfds[2*i].events == POLLIN) {
+              read(fd1[i][1], buffer, 1000);
+            }
+            if (pollfds[2*i+1].events == POLLIN) {
+              read(fd2[i][1], buffer, 1000);
+            }
+
+
+          }
+}
 
   /* on attend les processus fils */
 

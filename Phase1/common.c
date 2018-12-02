@@ -2,59 +2,14 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <poll.h>
 
-/*
-void affichages_dans_les_tubes(int fd1[],int fd2[],int *num_procs){
-	int rfds=1; //taille courante du pollfds
-	int p,i;
-	struct pollfd pollfds[2][100];
-	for(i=0,i<num_procs,i++){
-	pollfds[0][i].fd=fd1[i][1];
-	pollfds[0][i].events=POLLIN;
-	pollfds[1][i].fd=fd2[i][1]
-	pollfds[1][i].events=POLLIN;
-}
 
-	     while(1)
-{
-poll(pollfds,rfds,-1);
-/*je recupere les infos sur les tubes de redirection
-jusqu'à ce qu'ils soient inactifs (ie fermes par les
-processus dsm ecrivains de l'autre cote ...)*/
-//if(users->pollfds.revents==POLLIN)
-
-//};
+//void affichages_dans_les_tubes(int **fd1,int **fd2,int *num_procs){
 
 
 
 
-
-
-//}
-
-
-
-int receive_length(int socket, char *buffer)
-{
-	int k = 0;
-  int length=500;
-	memset(buffer, '\0', length);
-
-	while (recv(socket,buffer,1,0) > 0)
-	{
-		if (buffer[k] == '\n')
-		{
-			buffer[k] = '\0';
-			break;
-		}
-
-		k++;
-
-		if (k == length-1)
-			break;
-	}
-  return k;
-}
 
 int indice_b (char buffer[]){
 	int j=0;
@@ -63,8 +18,6 @@ int indice_b (char buffer[]){
 	}
 	return j;
 }
-
-
 int creer_socket(int *port)
 {
   int sock = 0;
@@ -114,13 +67,6 @@ int do_accept(int s, struct sockaddr* adresse) {
 		if (fda < 0 ) {
 				perror("Voici l'erreur concernant l'acceptation : ");
 		}
-
-	/*	if (fda == -1 && errno == EINTR) {
-				// EINTR The accept() function was interrupted by a signal
-				//         that was caught before a valid connection arrived.
-
-		}*/
-
 	} while (fda < 0);
 
 	return fda;
