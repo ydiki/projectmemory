@@ -274,23 +274,23 @@ int main(int argc, char *argv[])
     /* sur les tubes de redirection de stdout/stderr */
 
     int p;
-    int t_n=num_procs*2;
-    //char *buffer = malloc(sizeof(char) * 1000);
-    struct pollfd pollfds[(num_procs)*2];
+    int t_n=1;
+    struct pollfd pollfds[100];
 
     for(i=0;i<num_procs;i++){
       //stdout
-      pollfds[2*i].fd=fd1[i][1];
+      pollfds[2*i].fd=STDOUT_FILENO;
       pollfds[2*i].events=POLLIN;
       //stderr
-      pollfds[2*i+1].fd=fd2[i][1];
+      pollfds[2*i+1].fd=STDERR_FILENO;
       pollfds[2*i+1].events=POLLIN;
     }
-         while(num_procs>0){
+
+         while(1){
 
             poll(pollfds,t_n,-1);
             if ( errno != EINTR )
-              error("Erreur lors du poll ");
+              perror("Erreur lors du poll ");
 
             for (i = 0; i < num_procs ; i++) {
             /*je recupere les infos sur les tubes de redirection
@@ -303,16 +303,18 @@ int main(int argc, char *argv[])
             if (pollfds[2*i+1].events == POLLIN) {
               read(fd2[i][1], buffer, 1000);
             }
-
-
           }
 }
 
   /* on attend les processus fils */
+  //while(wait(NULL) > 0);
+
 
   /* on ferme les descripteurs proprement */
 
+
   /* on ferme la socket d'ecoute */
+
 }
 exit(EXIT_SUCCESS);
 }

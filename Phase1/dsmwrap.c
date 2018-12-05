@@ -87,6 +87,32 @@ int main(int argc, char **argv)
   read(socket_lanceur,&proc_array[i].connect_info.ad_client,sizeof(struct sockaddr));
 }
 
+/* ============================================================== *\
+                    Connexion aux autres processus
+\* ============================================================== */
+
+int fd_pross[100];
+int fd_petites[100];
+u_short nb_inf = 0;
+
+
+// Nombre de processus de rang inférieur
+for (i = 0; i < num_procs && proc_array[i].connect_info.rank < my_rank; i++)
+    nb_inf++;
+listen(socket_listen_procs,nb_inf);
+
+for (i = 0; i < num_procs; i++) {
+
+if(proc_array[i].connect_info.rank>=my_rank){
+  fd_petites[i]=socket(AF_INET,SOCK_STREAM,0);
+  do_connect(fd_petites[i],proc_array[i].connect_info.ad_client);
+}
+if(proc_array[i].connect_info.rank<my_rank){
+
+  fd_pross[i]=do_accept(socket_listen_procs,proc_array[i].connect_info.ad_client);
+}}
+
+
    //execvp(new_argv[0], new_argv);
 
    return 0;
