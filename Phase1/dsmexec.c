@@ -1,6 +1,6 @@
 #include "common_impl.h"
 #include <signal.h>
-#include <poll.h>
+//#include <poll.h>
 
 /* variables globales */
 
@@ -71,23 +71,18 @@ void get_machine_names(const char * fichier, struct nom_machines** machine_suiva
       struct nom_machines* mach = *machine_suivante;
       while(s>0 && c<*(num_procs)){
         if(buff[i]!='\n'){
-
           mach->nom[j]=buff[i];
-          printf("%c\n",mach->nom[j]);
           j++;
           i++;}
           else{
-            printf("fin\n");
             mach->nom[j]='\0';
             c++;
             i++;
             j=0;
             if (c<*(num_procs)){
-              printf("pas bon\n");
               mach->next=malloc(sizeof(struct nom_machines));
             }
             else{
-              printf("bon\n");
               mach->next =NULL;
             }
             mach=mach->next;
@@ -126,7 +121,7 @@ int main(int argc, char *argv[])
     //fd2 = malloc(num_procs * sizeof(fdpipe));
     const char * machine_file = argv[1];
     char **new_argv;
-    new_argv = malloc((argc+6) * sizeof(char *));
+    new_argv = malloc((argc+7) * sizeof(char *));
     char cette_machine[taille_nom];
     int size=100;
     char buffer[20];
@@ -183,32 +178,45 @@ int main(int argc, char *argv[])
       if (pid == 0) { /* fils */
 
         /* redirection stdout */
-          close(fd1[i][0]);
         close(STDOUT_FILENO);
-          dup2(STDOUT_FILENO,fd1[i][1]);
-        //  close(fd1[i][1]);
+        dup(fd1[i][1]);
+        close(fd1[i][0]);
+
+          //close(fd1[i][0]);
+        //  close(STDOUT_FILENO);
+          //dup2(STDOUT_FILENO,fd1[i][1]);
+         //close(fd1[i][1]);
           //printf("cree tube out\n");
 
         /* redirection stderr */
-          close(fd2[i][0]);
           close(STDERR_FILENO);
-          dup2(STDERR_FILENO,fd2[i][1]);
+          dup(fd2[i][1]);
+            close(fd2[i][0]);
+
+
+          //close(fd2[i][0]);
+          //close(STDERR_FILENO);
+          //dup2(STDERR_FILENO,fd2[i][1]);
           //close(fd2[i][1]);
 
         /* Creation du tableau dSuccess'arguments pour le ssh */
           trouver_machine(tabmachine,i,cette_machine);
           new_argv[0]="ssh";
           char p[10];
+          char *rr=malloc(5*sizeof(char));
           sprintf(p,"%d",port);
+          sprintf(rr,"%d",i);
+        // printf("AAAAAAh!!!! %s\n",rr);
           new_argv[1]=cette_machine;//nom du machine
           new_argv[2]="/net/t/ydiki/Desktop/Memoirepartagée/Phase1/bin/dsmwrap"; //chemin
-          new_argv[3]= hostname; // Hostname du serveur (fichier courant)
+          new_argv[3]=hostname; // Hostname du serveur (fichier courant)
           new_argv[4]=p;// Port du serveur   printf("num proc %d \n",num_procs);
-
+          new_argv[5]=rr;
+        //  printf("eieieieieie %s\n",new_argv[5]);
           for(j = 1; j < argc; j++){
-            new_argv[4+j]=argv[j];
+            new_argv[5+j]=argv[j];
           }
-          new_argv[argc+5]=NULL;
+          new_argv[argc+6]=NULL;
         /* int k;
           for(k=0; k<argc+5; k++){
             if(new_argv[k] != NULL)        //  close(STDOUT_FILENO);
@@ -228,13 +236,22 @@ int main(int argc, char *argv[])
         close(fd2[i][1]);
         num_procs_creat++;
 
+        // Enregistrement des extrémités utiles pour le reste du
+  			// programme :
+  			proc_array[i].fd_stderr = fd1[i][0];
+  			proc_array[i].fd_stdout = fd2[i][0];
+
       }
     }
+    socklen_t length__client = sizeof(struct sockaddr);
+
+
 
     for(i = 0; i < num_procs ; i++){
       /* on accepte les connexions des processus dsm */
-      proc_array[i].connect_info.ad_client=malloc(sizeof(struct sockaddr));
-      proc_array[i].connect_info.socket=do_accept(sock,proc_array[i].connect_info.ad_client);
+      //proc_array[i].connect_info.ad_client=malloc(sizeof(struct sockaddr*));
+      proc_array[i].connect_info.ad_client=malloc(sizeof(struct sockaddr_in));
+      proc_array[i].connect_info.socket=accept(sock,(struct sockaddr *)proc_array[i].connect_info.ad_client,&length__client);
       if (proc_array[i].connect_info.socket==-1)
         perror("");
       /*  On recupere le nom de la machine distante */
@@ -257,53 +274,81 @@ int main(int argc, char *argv[])
       proc_array[i].connect_info.rank = i;
     }
 
-
-
     for(i = 0; i < num_procs ; i++){
       /* envoi du nombre de processus aux processus dsm*/
-     write(proc_array[i].connect_info.socket,&num_procs,sizeof(num_procs));
+    write(proc_array[i].connect_info.socket,&num_procs,sizeof(int));
+    send_all(proc_array[i].connect_info.socket,proc_array,num_procs*sizeof(dsm_proc_t));
+
     /* envoi des rangs aux processus dsm */
-      write(proc_array[i].connect_info.socket,&proc_array[i].connect_info.rank,sizeof(int));
+      //write(proc_array[i].connect_info.socket,&proc_array[i].connect_info.rank,sizeof(int));
 
     /* envoi des infos de connexion aux processus */
-        write(proc_array[i].connect_info.socket,proc_array[i].connect_info.port,sizeof(int));
-        write(proc_array[i].connect_info.socket,proc_array[i].pid,sizeof(pid_t));
-        write(proc_array[i].connect_info.socket,proc_array[i].connect_info.ad_client,sizeof(struct sockaddr));
+    //    write(proc_array[i].connect_info.socket,&proc_array[i].connect_info.port,sizeof(proc_array[i].connect_info.port));
+      //  write(proc_array[i].connect_info.socket,&proc_array[i].pid,sizeof(proc_array[i].pid));
+      //  write(proc_array[i].connect_info.socket,&proc_array[i].connect_info.ad_client,sizeof(struct sockaddr));
 }
+/*int c;
+int r=read(fd1[0][0],&c,sizeof(c));
+perror("");
+printf("---------------rang r = %d et %d\n",r,c);*/
+
+
     /* gestion des E/S : on recupere les caracteres */
     /* sur les tubes de redirection de stdout/stderr */
-
-    int p;
-    int t_n=1;
-    struct pollfd pollfds[100];
+   int p;
+    int t_n=2*num_procs;
+    struct pollfd pollfds[t_n];
 
     for(i=0;i<num_procs;i++){
       //stdout
-      pollfds[2*i].fd=STDOUT_FILENO;
+      pollfds[2*i].fd=fd1[i][0];
       pollfds[2*i].events=POLLIN;
       //stderr
-      pollfds[2*i+1].fd=STDERR_FILENO;
+      pollfds[2*i+1].fd=fd2[i][0];
       pollfds[2*i+1].events=POLLIN;
     }
-
+   int bb=0;
+   int bu;
+   int closed_pipes = 0;
+        //sleep(1);
          while(1){
+           //printf("%d\n", closed_pipes);
+           memset(buffer,0,sizeof(buffer));
+           if(closed_pipes == t_n){
+                printf("fermé \n");
+                fflush(stdout);
+                break;}
 
             poll(pollfds,t_n,-1);
             if ( errno != EINTR )
-              perror("Erreur lors du poll ");
-
+              //perror("");
+              ;
             for (i = 0; i < num_procs ; i++) {
             /*je recupere les infos sur les tubes de redirection
             jusqu'à ce qu'ils soient inactifs (ie fermes par les
             processus dsm ecrivains de l'autre cote ...)*/
+         if (pollfds[2*i].revents == POLLIN) {
+            memset(buffer,0,sizeof(buffer));
+              read(fd1[i][0], (char *)buffer, sizeof(buffer));
+              //read(fd1[i][0], bu, sizeof(bu));
+              printf("[ Proc %d : %s stdout ]: %s\n",i,proc_array[i].connect_info.name,buffer);
+              bb++;
 
-            if (pollfds[2*i].events == POLLIN) {
-              read(fd1[i][1], buffer, 1000);
+            }else if(pollfds[2*i].events & POLLHUP){
+              pollfds[2*i].fd = -1;
+              closed_pipes++;
             }
-            if (pollfds[2*i+1].events == POLLIN) {
-              read(fd2[i][1], buffer, 1000);
+            if (pollfds[2*i+1].revents == POLLIN) {
+              memset(buffer,0,sizeof(buffer));
+              read(fd2[i][0], buffer, sizeof(buffer));
+
+            printf("[ Proc %d : %s stderr ]: %s\n",i,proc_array[i].connect_info.name,buffer);
             }
+            else if(pollfds[2*i+1].events & POLLHUP){
+              pollfds[2*i+1].fd = -1;
+              closed_pipes++;}
           }
+        //  printf("bb %d\n",bb);
 }
 
   /* on attend les processus fils */

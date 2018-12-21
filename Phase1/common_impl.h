@@ -11,6 +11,7 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include<netdb.h>
+#include <poll.h>
 
 
 /* autres includes (eventuellement) */
@@ -24,7 +25,8 @@ struct dsm_proc_conn  {
   int socket;
   int rank;
   u_short port;
-  struct sockaddr* ad_client;
+  //struct sockaddr* ad_client;
+  struct sockaddr_in* ad_client;
 };
 
 struct nom_machines{
@@ -39,6 +41,8 @@ typedef struct dsm_proc_conn dsm_proc_conn_t;
 /* d'identification des processus dsm */
 struct dsm_proc {
   pid_t pid;
+  int fd_stdout;
+  int fd_stderr;
   dsm_proc_conn_t connect_info;
 };
 typedef struct dsm_proc dsm_proc_t;

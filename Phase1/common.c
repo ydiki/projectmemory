@@ -65,20 +65,19 @@ int do_accept(int s, struct sockaddr* adresse) {
 	do{
 		fda = accept(s, adresse, &length__client);
 		if (fda < 0 ) {
-				perror("Voici l'erreur concernant l'acceptation : ");
+				perror("accept :");
 		}
 	} while (fda < 0);
 
 	return fda;
 }
-
 int do_connect(int socket, struct sockaddr_in* server_add) {
 	int con = connect(socket, (struct sockaddr *) server_add, sizeof(struct sockaddr));
 	if (con == -1) {
-		printf("Connexion ERROR ");
+		perror("connect");
 	}
 	else{
-		printf("connexion done :) \n");
+		//printf("connexion done :) \n");
 	}
 	return con;
 }
@@ -88,7 +87,7 @@ void do_listen(int socket, int maxconn) {
 	int listen_return = listen(socket, maxconn);
 
 	if (listen_return == -1) {
-		error("Listen ERROR");
+		error("Listen");
 	}
 }
 
@@ -130,7 +129,34 @@ ssize_t read_line(int fd, char * buf, size_t len){
 
 	return i;
 }
+int send_all(int fd, void *buffer, int size){
+  ssize_t ret = 0;
+  do{
+    ret += write(fd,(char *)buffer+ret,size-ret);
+  } while(ret != size);
+  return ret;
+}
 
+int recv_all(int fd, void *buffer, int size){
+  ssize_t ret = 0;
+  do{
+    ret += read(fd,(char *)buffer+ret,size-ret);
+  } while(ret != size);
+  return ret;
+}
+void do_read(int s, const void *input, int length) {
+
+	int r = 0;
+
+	do {
+		r = read(s, input + r, length - r);
+
+		if (r == -1) {
+			error("read ERROR ");
+		}
+	}
+	while (r!=length);
+}
 
 void handle_message(int s, const void *input, int length) {
 
@@ -152,7 +178,7 @@ int get_ip_from_hostname(char * hostname , char* ip)
    struct in_addr **addr_list;
    int i;
    if ( (he = gethostbyname( hostname ) ) == NULL)
-   { herror("ERROR in gethostbyname");
+   { herror("ERROR gethostbyname");
      return 1;}
    addr_list = (struct in_addr **) he->h_addr_list;
     for(i = 0; addr_list[i] != NULL; i++)
@@ -161,6 +187,20 @@ int get_ip_from_hostname(char * hostname , char* ip)
     return 1;
 }
 
+in_port_t get_in_port(struct sockaddr *sa)
+{
+    if (sa->sa_family == AF_INET) {
+        return (((struct sockaddr_in*)sa)->sin_port);
+    }
+
+    return (((struct sockaddr_in6*)sa)->sin6_port);
+}
+void *get_in_addr(struct sockaddr *sa)
+{
+    if (sa->sa_family == AF_INET)
+        return &(((struct sockaddr_in*)sa)->sin_addr);
+    return &(((struct sockaddr_in6*)sa)->sin6_addr);
+}
 
 /* Vous pouvez ecrire ici toutes les fonctions */
 /* qui pourraient etre utilisees par le lanceur */
