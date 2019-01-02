@@ -5,20 +5,8 @@
 #include <poll.h>
 
 
-//void affichages_dans_les_tubes(int **fd1,int **fd2,int *num_procs){
 
-
-
-
-
-int indice_b (char buffer[]){
-	int j=0;
-	while (buffer[j] != '/0' & buffer[j] != '\n'){
-		j++;
-	}
-	return j;
-}
-int creer_socket(int *port)
+int creer_socket(u_short *port)
 {
   int sock = 0;
   int yes=1;
@@ -71,13 +59,11 @@ int do_accept(int s, struct sockaddr* adresse) {
 
 	return fda;
 }
+
 int do_connect(int socket, struct sockaddr_in* server_add) {
 	int con = connect(socket, (struct sockaddr *) server_add, sizeof(struct sockaddr));
 	if (con == -1) {
 		perror("connect");
-	}
-	else{
-		//printf("connexion done :) \n");
 	}
 	return con;
 }
@@ -87,48 +73,33 @@ void do_listen(int socket, int maxconn) {
 	int listen_return = listen(socket, maxconn);
 
 	if (listen_return == -1) {
-		error("Listen");
+		perror("Listen");
 	}
 }
 
-ssize_t read_line(int fd, char * buf, size_t len){
+int readline(int sock, void *buffer, size_t len){
 
-	/* Variables */
-	int i;
-	char c;
-	int ret;
-	char * ptr;
-	ptr = buf;
-	int cnt = 0;
+    int i;
+    char* str_tmp = (char*) buffer;
 
-	/* How to read */
-	for (i = 0 ; i < len; i++){
+		char c;
 
-		ret = read(fd, &c, 1);
+		int a = read(sock,&c,1);
 
-		if( ret == 1 ){
-			ptr[cnt++] = c;
+    if(a <= 0)
+      return a;
 
-			if( c == '\n'){
-				ptr[cnt] = '\0';
-				return i+1;
-			}
-		}
-		else if( 0 == ret ) {
-			ptr[cnt] = '\0';
-			break;
-		}
-	}
-	ptr[len] = '\0';
 
-	/* Empty stdin buffer in the case of too large user_input */
-	if( fd == STDIN_FILENO && i == len ){
-		char ss[10*100];
-		ret = read(fd, ss, 10*100);
-	}
-
-	return i;
+		i = 0;
+    while( a > 0 && i < len && c != '\n'){
+      str_tmp[i] = c;
+      a = read(sock,&c,1);
+      i++;
+    }
+    str_tmp[i] = '\0';
+    return i;
 }
+
 int send_all(int fd, void *buffer, int size){
   ssize_t ret = 0;
   do{
@@ -144,7 +115,8 @@ int recv_all(int fd, void *buffer, int size){
   } while(ret != size);
   return ret;
 }
-void do_read(int s, const void *input, int length) {
+
+void do_read(int s, void *input, int length) {
 
 	int r = 0;
 
@@ -152,27 +124,12 @@ void do_read(int s, const void *input, int length) {
 		r = read(s, input + r, length - r);
 
 		if (r == -1) {
-			error("read ERROR ");
+			perror("read ERROR ");
 		}
 	}
 	while (r!=length);
 }
 
-void handle_message(int s, const void *input, int length) {
-
-	int p = 0;
-
-	do {
-		p = send(s, input + p, length - p, 0);
-
-		if (p == -1) {
-			error("Send ERROR ");
-		}
-	}
-	while (p!=length);
-}
-
-//this_function_is_not_ours
 int get_ip_from_hostname(char * hostname , char* ip)
 {  struct hostent *he;
    struct in_addr **addr_list;
@@ -187,20 +144,7 @@ int get_ip_from_hostname(char * hostname , char* ip)
     return 1;
 }
 
-in_port_t get_in_port(struct sockaddr *sa)
-{
-    if (sa->sa_family == AF_INET) {
-        return (((struct sockaddr_in*)sa)->sin_port);
-    }
 
-    return (((struct sockaddr_in6*)sa)->sin6_port);
-}
-void *get_in_addr(struct sockaddr *sa)
-{
-    if (sa->sa_family == AF_INET)
-        return &(((struct sockaddr_in*)sa)->sin_addr);
-    return &(((struct sockaddr_in6*)sa)->sin6_addr);
-}
 
 /* Vous pouvez ecrire ici toutes les fonctions */
 /* qui pourraient etre utilisees par le lanceur */
