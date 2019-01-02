@@ -1,8 +1,8 @@
-# Projet de memoire partagée
+# Projet de mémoire partagée distribuée
 
 Phase 1 :
 
-Working on it ...
+Done !
 
 
 Phase 2 :
