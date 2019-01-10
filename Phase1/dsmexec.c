@@ -114,11 +114,9 @@ int main(int argc, char *argv[])
     int num_procs = 0;
     int i,j;
     u_short port;
-
     const char * machine_file = argv[1];
-    socklen_t length__client = sizeof(struct sockaddr);
     char **new_argv;
-    new_argv = malloc((argc+6) * sizeof(char *));
+    new_argv = malloc((argc+7) * sizeof(char *));
     char cette_machine[taille_nom];
     char buffer[MAXLEN];
 
@@ -127,8 +125,8 @@ int main(int argc, char *argv[])
     struct sigaction zombie;
     memset(&zombie, 0, sizeof(struct sigaction ));
     zombie.sa_handler = sigchld_handler;
-    zombie.sa_flags = SA_RESTART;
-    sigaction(SIGCHLD, &zombie, NULL);
+    //zombie.sa_flags = SA_RESTART;
+    //sigaction(SIGCHLD, &zombie, NULL);
     /* lecture du fichier de machines */
     /* 1- on recupere le nombre de processus a lancer */
     //c'est le nombre des lignes
@@ -142,12 +140,12 @@ int main(int argc, char *argv[])
 
     struct nom_machines *tabmachine ;
     get_machine_names(machine_file,&tabmachine,&num_procs);
-
+    printf("Get_Machines \n");
 
 
     /* creation de la socket d'ecoute */
     int sock = creer_socket(&port);
-    printf("socket is created\n");
+    printf("socket created\n");
 
     /* + ecoute effective */
     listen(sock,num_procs);
@@ -163,10 +161,10 @@ int main(int argc, char *argv[])
     for(i = 0; i< num_procs; i++){
       /* creation du tube pour rediriger stdout */
       pipe(fd1[i]);
-      printf("pip 1 created\n");
+      printf("pipe stdout created \n");
       /* creation du tube pour rediriger stderr */
       pipe(fd2[i]);
-      printf("pip 2 created\n");
+      printf("pipe stderr created \n");
     }
 
     /* creation des fils */
@@ -194,11 +192,6 @@ int main(int argc, char *argv[])
         close(fd1[i][1]);
         close(fd1[i][0]);
 
-          //close(fd1[i][0]);
-          //close(STDOUT_FILENO);
-          //dup2(STDOUT_FILENO,fd1[i][1]);
-         //close(fd1[i][1]);
-          //printf("cree tube out\n");
 
         /* redirection stderr */
           close(STDERR_FILENO);
@@ -206,26 +199,25 @@ int main(int argc, char *argv[])
           close(fd2[i][1]);
           close(fd2[i][0]);
 
-          //close(fd2[i][0]);
-          //close(STDERR_FILENO);
-          //dup2(STDERR_FILENO,fd2[i][1]);
-          //close(fd2[i][1]);
 
         /* Creation du tableau dSuccess'arguments pour le ssh */
 
           trouver_machine(tabmachine,i,cette_machine);
-          char p[10];
-          sprintf(p,"%d",port);
-          new_argv[0]="ssh";
-          new_argv[1]=cette_machine;//nom du machine
-          new_argv[2]="/net/t/ydiki/Desktop/mem/Phase1/bin/dsmwrap"; //Path
-          new_argv[3]=hostname; // Hostname du serveur (fichier courant)
-          new_argv[4]=p;// Port du serveur
 
+          new_argv[0]="ssh";
+          char p[10];
+          char *rr=malloc(5*sizeof(char));
+          sprintf(p,"%d",port);
+          sprintf(rr,"%d",i);
+          new_argv[1]=cette_machine;//nom du machine
+          new_argv[2]="/net/t/ydiki/Desktop/Memoirepartagée/Phase1/bin/dsmwrap"; //chemin
+          new_argv[3]=hostname; // Hostname du serveur (fichier courant)
+          new_argv[4]=p;// Port du serveur   printf("num proc %d \n",num_procs);
+          new_argv[5]=rr;
           for(j = 1; j < argc; j++){
-            new_argv[4+j]=argv[j];
+            new_argv[5+j]=argv[j];
           }
-          new_argv[argc+5]=NULL;
+          new_argv[argc+6]=NULL;
         /* jump to new prog : */
 
         if (execvp("ssh", new_argv) == -1)
@@ -245,7 +237,7 @@ int main(int argc, char *argv[])
 
       }
     }
-
+    socklen_t length__client = sizeof(struct sockaddr);
 
 
     int name_len;
@@ -263,17 +255,12 @@ int main(int argc, char *argv[])
       read(proc_array[i].connect_info.socket,buffer,name_len);
       buffer[name_len] = '\0';
       strcpy(proc_array[i].connect_info.name,buffer);
-      //printf("-----------name  %s\n",proc_array[i].connect_info.name);
       /* On recupere le pid du processus distant  */
 
       read(proc_array[i].connect_info.socket,&proc_array[i].pid,sizeof(proc_array[i].pid));
-
-
-      //printf("-------- pid %d\n ",proc_array[i].pid);
       /* On recupere le numero de port de la socket */
       /* d'ecoute des processus distants */
       read(proc_array[i].connect_info.socket,&proc_array[i].connect_info.port,sizeof(proc_array[i].connect_info.port));
-      //printf("--------port %d\n ",proc_array[i].connect_info.port);
       /* On recupere le rang */
       proc_array[i].connect_info.rank = i;
     }
@@ -282,7 +269,7 @@ int main(int argc, char *argv[])
       /* envoi du nombre de processus aux processus dsm*/
     write(proc_array[i].connect_info.socket,&num_procs,sizeof(int));
     write(proc_array[i].connect_info.socket,&i,sizeof(int));
-    send_all(proc_array[i].connect_info.socket,proc_array,num_procs*sizeof(dsm_proc_t));
+    sendall(proc_array[i].connect_info.socket,proc_array,num_procs*sizeof(dsm_proc_t));
 }
 
 
@@ -307,7 +294,7 @@ int main(int argc, char *argv[])
          while(1){
            memset(buffer,0,sizeof(buffer));
            if(closed_pipes == t_n){
-                printf("Pipes are closed\n");
+                printf("Pipe closed \n");
                 fflush(stdout);
                 break;
            }
@@ -345,18 +332,17 @@ int main(int argc, char *argv[])
               closed_pipes++;
             }
           }
-        //  printf("bb %d\n",bb);
 }
 
   /* on attend les processus fils */
-  while(wait(NULL) > 0);
+  //while(wait(NULL) > 0);
 
 
   /* on ferme les descripteurs proprement */
 
 
   /* on ferme la socket d'ecoute */
-  close(sock);
+
 }
 exit(EXIT_SUCCESS);
 }

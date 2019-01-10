@@ -5,7 +5,6 @@
 #include <poll.h>
 
 
-
 int creer_socket(u_short *port)
 {
   int sock = 0;
@@ -59,11 +58,13 @@ int do_accept(int s, struct sockaddr* adresse) {
 
 	return fda;
 }
-
 int do_connect(int socket, struct sockaddr_in* server_add) {
 	int con = connect(socket, (struct sockaddr *) server_add, sizeof(struct sockaddr));
 	if (con == -1) {
 		perror("connect");
+	}
+	else{
+		//printf("connexion done :) \n");
 	}
 	return con;
 }
@@ -76,7 +77,6 @@ void do_listen(int socket, int maxconn) {
 		perror("Listen");
 	}
 }
-
 int readline(int sock, void *buffer, size_t len){
 
     int i;
@@ -85,6 +85,7 @@ int readline(int sock, void *buffer, size_t len){
 		char c;
 
 		int a = read(sock,&c,1);
+
 
     if(a <= 0)
       return a;
@@ -100,22 +101,21 @@ int readline(int sock, void *buffer, size_t len){
     return i;
 }
 
-int send_all(int fd, void *buffer, int size){
-  ssize_t ret = 0;
+int sendall(int fd, void *buffer, int size){
+  ssize_t s = 0;
   do{
-    ret += write(fd,(char *)buffer+ret,size-ret);
-  } while(ret != size);
-  return ret;
+    s += write(fd,(char *)buffer+s,size-s);
+  } while(s != size);
+  return s;
 }
 
-int recv_all(int fd, void *buffer, int size){
-  ssize_t ret = 0;
+int receive_all(int fd, void *buffer, int size){
+  ssize_t s = 0;
   do{
-    ret += read(fd,(char *)buffer+ret,size-ret);
-  } while(ret != size);
-  return ret;
+    s += read(fd,(char *)buffer+s,size-s);
+  } while(s != size);
+  return s;
 }
-
 void do_read(int s, void *input, int length) {
 
 	int r = 0;
@@ -144,7 +144,20 @@ int get_ip_from_hostname(char * hostname , char* ip)
     return 1;
 }
 
+in_port_t get_in_port(struct sockaddr *sa)
+{
+    if (sa->sa_family == AF_INET) {
+        return (((struct sockaddr_in*)sa)->sin_port);
+    }
 
+    return (((struct sockaddr_in6*)sa)->sin6_port);
+}
+void *get_in_addr(struct sockaddr *sa)
+{
+    if (sa->sa_family == AF_INET)
+        return &(((struct sockaddr_in*)sa)->sin_addr);
+    return &(((struct sockaddr_in6*)sa)->sin6_addr);
+}
 
 /* Vous pouvez ecrire ici toutes les fonctions */
 /* qui pourraient etre utilisees par le lanceur */

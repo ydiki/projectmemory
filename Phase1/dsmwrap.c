@@ -25,19 +25,19 @@ int main(int argc, char **argv)
    /* la liste des arguments qu'on va passer */
    /* a la commande a executer vraiment */
    char ** newargv = malloc((argc-2) * sizeof(char *));
-
+/*
  	 for (i = 0; i < argc-3; i++)
- 		newargv[i] = argv[4+i];
+ 		newargv[i] = argv[i+1];
 
- 	  newargv[argc-3] = NULL;
-
-  /*  for (i = 0; i < argc-3; i++)
-     printf("arg %d : %s \n",i,newargv[i]);*/
-
+ 	  newargv[argc-3] = NULL;*/
+    newargv[0]="/net/t/ydiki/Desktop/Memoirepartagée/Phase1/bin/truc";
+    newargv[1]="arrdf";
+    newargv[2]="dddddd";
+    newargv[3]="deecdd";
+    newargv[4]=NULL;
    //On recupere l'adresse du lanceur à partir du hostname donné
    port_lanceur = atoi(argv[2]);
    get_ip_from_hostname(argv[1],ip_lanceur);
-
 
    //On recupere le nom de la machine
    gethostname(name, sizeof(char) * taille_nom);
@@ -79,13 +79,14 @@ int main(int argc, char **argv)
   /*Récupération des infos de connexion aux autres processus*/
   /*nombre de processus */
    read(socket_lanceur,&num_procs,sizeof(int));
+  /*le rang*/
    read(socket_lanceur,&my_rank,sizeof(int));
 
    proc_array = malloc(num_procs * sizeof(dsm_proc_t));
 
-  //autres infromations
-   recv_all(socket_lanceur,proc_array,num_procs*sizeof(dsm_proc_t));
-   printf("Server is done sending.\n");
+  //Autres infromations
+   receive_all(socket_lanceur,proc_array,num_procs*sizeof(dsm_proc_t));
+   printf("Server is done.\n");
    fflush(stdout);
 
 /* ============================================================== \*\
@@ -97,20 +98,19 @@ socklen_t length__client = sizeof(struct sockaddr);
 struct sockaddr_in* ad_accept = malloc(length__client);
 
 
-
-
 printf("my rank %d my port %d\n", my_rank, port_listen_procs);
 fflush(stdout);
-
+int c;
 
 for (i=0; i<my_rank;i++){
 
     fd_pross[i]=accept(socket_listen_procs,(struct sockaddr *)ad_accept,&length__client);
     //perror("A");
-    printf("n° %d accepted n°socket: %d\n",my_rank,fd_pross[i]);
+    printf("%d: accept: %d\n",my_rank,fd_pross[i]);
     fflush(stdout);
 
 }
+wait(NULL);
 for (i=my_rank+1;i<num_procs;i++){
 
   tab_sock[i]=socket(AF_INET,SOCK_STREAM,0);
@@ -119,17 +119,21 @@ for (i=my_rank+1;i<num_procs;i++){
   tmp_addr->sin_family=AF_INET;
   tmp_addr->sin_port=htons(proc_array[i].connect_info.port);
   tmp_addr->sin_addr.s_addr = proc_array[i].connect_info.ad_client.sin_addr.s_addr;
-  printf("n° %d trying to connect to n° %d add : %s port : %d\n",my_rank,i,inet_ntoa(tmp_addr->sin_addr), proc_array[i].connect_info.port);
+  printf("%d trying to connect to %d %s %d\n",my_rank,i,inet_ntoa(tmp_addr->sin_addr), proc_array[i].connect_info.port);
   fflush(stdout);
 
-  do_connect(tab_sock[i],tmp_addr);
-  printf("%d connected \n", my_rank);
+
+  c = do_connect(tab_sock[i],tmp_addr);
+  printf("%d connect %d\n", my_rank,c);
   fflush(stdout);
 }
 
+/*   for (i = 0; i < 4; i++)
+      printf("argvnn %s\n",newargv[i]);*/
 
-  execvp(newargv[0], newargv);
-printf("%d is done \n", my_rank);
-  sleep(1);
+  if (execvp(newargv[0],newargv) == -1)
+        ERROR_EXIT("Erreur in truc")
+  // printf("done %d\n", my_rank);
+   sleep(1);
    return 0;
 }

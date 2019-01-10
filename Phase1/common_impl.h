@@ -27,6 +27,7 @@ struct dsm_proc_conn  {
   int socket;
   int rank;
   u_short port;
+  //struct sockaddr* ad_client;
   struct sockaddr_in ad_client;
 };
 
@@ -46,16 +47,13 @@ struct dsm_proc {
   int fd_stderr;
   dsm_proc_conn_t connect_info;
 };
-
 typedef struct dsm_proc dsm_proc_t;
-int readline(int sock, void *buffer, size_t len);
 int creer_socket(u_short *port);
-int receive_length(int socket, char * buffer);
+int readline(int sock, void *buffer, size_t len);
 int do_connect(int socket, struct sockaddr_in *serv_add);
 int do_accept(int s, struct sockaddr* adresse);
 void do_listen(int socket, int maxconn);
 void do_read(int s, void *input, int length);
-int recv_all(int fd, void *buffer, int size);
-int send_all(int fd, void *buffer, int size);
-void handle_message(int s, const void *input, int length);
+int receive_all(int fd, void *buffer, int size);
+int sendall(int fd, void *buffer, int size);
 int get_ip_from_hostname(char * hostname , char* ip);
