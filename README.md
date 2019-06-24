@@ -1,10 +1,3 @@
 # Projet de mémoire partagée distribuée
 
-Phase 1 :
-
-Done !
-
-
-Phase 2 :
-
-Working on it ...
+This project is about organizing multiprocessor in a shared memory in order to prevent a segmentation fault and other problems
